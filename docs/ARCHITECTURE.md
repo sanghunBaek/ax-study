@@ -136,10 +136,11 @@ ax-study/
 │   └── api-spec.md              # REST API 명세
 │
 ├── .claude/
-│   ├── commands/                # 커스텀 슬래시 커맨드
-│   │   ├── sync-data.md         # /sync-data: 최신 회차 동기화
-│   │   ├── analyze.md           # /analyze: 통계 분석 실행
-│   │   └── recommend.md         # /recommend: 번호 추천 생성
+│   ├── commands/                # 커스텀 슬래시 커맨드 (개발자 전용)
+│   │   ├── seed-db.md           # /seed-db: 전체 회차 초기 적재
+│   │   ├── check-api.md         # /check-api: 동행복권 API 최신 회차 확인
+│   │   ├── gen-prompt.md        # /gen-prompt: LLM 프롬프트 미리보기
+│   │   └── db-status.md         # /db-status: DB 적재 현황 요약
 │   └── settings.json            # 권한 설정, 환경변수 등
 │
 ├── backend/                     # Spring Boot
@@ -208,7 +209,7 @@ ax-study/
 
 ### Phase 5 — Claude Code 기능 고도화 (ongoing)
 - [ ] `CLAUDE.md` 정교화 (컨텍스트, 커맨드 가이드)
-- [ ] 커스텀 슬래시 커맨드 작성 (`/analyze`, `/sync-data`)
+- [ ] 커스텀 슬래시 커맨드 고도화 (`/seed-db`, `/check-api`, `/gen-prompt`, `/db-status`)
 - [ ] Subagent 활용: 복잡한 통계 분석을 별도 에이전트에 위임
 - [ ] Hook 설정: pre-commit 테스트, post-build 알림
 - [ ] RAG 고도화: 통계 문서를 벡터 임베딩으로 관리
@@ -220,7 +221,7 @@ ax-study/
 | 기능 | 적용 시나리오 |
 |------|--------------|
 | `CLAUDE.md` | 프로젝트 컨텍스트, DB 스키마, API 구조 문서화 → Claude가 코드 생성 시 정확도 향상 |
-| **Skill (커스텀 커맨드)** | `/sync-data`: 동행복권 API 호출 & DB 갱신 자동화<br>`/recommend {query}`: 추천 번호 즉시 생성 |
+| **Skill (커스텀 커맨드)** | `/seed-db`: 초기 데이터 적재<br>`/check-api`: API 최신 회차 즉시 확인<br>`/gen-prompt`: LLM 프롬프트 품질 검토<br>`/db-status`: DB 적재 현황 파악 |
 | **Subagent** | 1,200회차 전체 통계 분석처럼 무거운 작업을 별도 에이전트에 위임 |
 | **Hook** | `PreToolUse`: DB 스키마 변경 전 백업 트리거<br>`PostToolUse`: 코드 저장 후 자동 lint/test |
 | **RAG** | 최신 통계 데이터를 마크다운 문서로 생성 → Claude 컨텍스트에 주입하여 더 정교한 추천 |

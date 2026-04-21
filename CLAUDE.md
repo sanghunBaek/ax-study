@@ -67,11 +67,14 @@ DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
 
 ## 커스텀 슬래시 커맨드 (.claude/commands/)
 
+개발 중 반복 확인 작업을 단축하는 개발자 전용 커맨드.
+
 | 커맨드 | 기능 |
 |--------|------|
-| `/sync-data` | 최신 회차 동기화 실행 |
-| `/analyze` | 최근 N회차 통계 분석 |
-| `/recommend` | 번호 추천 생성 |
+| `/seed-db` | 동행복권 API에서 전체 회차 DB 초기 적재 |
+| `/check-api` | 동행복권 API 최신 회차 확인 & DB와 동기화 상태 비교 |
+| `/gen-prompt` | LLM 추천 시 실제 전달되는 프롬프트 미리보기 |
+| `/db-status` | DB 적재 현황 요약 (총 회차 수, 빠진 회차 등) |
 
 ## Claude Code 활용 패턴
 
