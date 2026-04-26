@@ -6,7 +6,7 @@ Claude Code를 활용한 로또 추천 앱 학습 프로젝트.
 
 ```
 ax-study/
-├── backend/      Spring Boot 3.x (Java 21) — REST API, 데이터 수집, LLM 연동
+├── backend/      Spring Boot 3.x (Java 21) — REST API, 데이터 수집, 통계 분석
 ├── frontend/     React 18 + Vite + Toss Design System
 ├── docs/         아키텍처, API 명세 문서
 └── .claude/      커스텀 슬래시 커맨드, 설정
@@ -40,7 +40,6 @@ GET  /api/stats/hot          최근 N회차 Hot 번호 (자주 나온)
 GET  /api/stats/cold         최근 N회차 Cold 번호 (안 나온)
 GET  /api/stats/frequency    전체 번호 출현 빈도
 GET  /api/recommend/stats    통계 기반 번호 추천
-POST /api/recommend/llm      LLM(Claude) 기반 번호 추천
 POST /api/sync               최신 회차 동기화 (관리용)
 ```
 
@@ -61,7 +60,6 @@ cd frontend && npm run dev
 
 ## 환경변수 (backend/.env)
 ```
-ANTHROPIC_API_KEY=         # Claude API 키
 DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
 ```
 
@@ -73,7 +71,6 @@ DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
 |--------|------|
 | `/seed-db` | 동행복권 API에서 전체 회차 DB 초기 적재 |
 | `/check-api` | 동행복권 API 최신 회차 확인 & DB와 동기화 상태 비교 |
-| `/gen-prompt` | LLM 추천 시 실제 전달되는 프롬프트 미리보기 |
 | `/db-status` | DB 적재 현황 요약 (총 회차 수, 빠진 회차 등) |
 
 ## Claude Code 활용 패턴
@@ -81,16 +78,6 @@ DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
 ### Subagent 사용 시나리오
 - 전체 회차 통계 분석 (무거운 계산): `Agent(subagent_type="Explore")`
 - 복잡한 SQL 쿼리 최적화: `Agent(subagent_type="general-purpose")`
-
-### RAG 패턴
-LLM 추천 시 아래 통계 데이터를 컨텍스트로 주입:
-1. 최근 20회차 출현 번호 목록
-2. 전체 번호별 출현 빈도
-3. 최근 미출현 번호 (cold)
-4. 최근 연속 출현 번호 (hot)
-
-### 프롬프트 템플릿 위치
-`backend/src/main/resources/prompts/` 에 `.st` (StringTemplate) 파일로 관리
 
 ## 테스트
 
