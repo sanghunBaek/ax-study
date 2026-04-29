@@ -97,17 +97,31 @@ lottery_draws (
 
 ---
 
-## 5. 추천 알고리즘 (프론트 계산)
+## 5. 추천 알고리즘 (Supabase RPC)
 
-| 추천 유형 | 로직 |
-|-----------|------|
-| `HOT` | 최근 N회차에서 가장 많이 출현한 번호 |
-| `COLD` | 가장 오랫동안 출현하지 않은 번호 |
-| `BALANCED` | Hot 3개 + Cold 3개 조합 |
-| `FREQUENCY` | 역대 전체 출현 빈도 기반 |
+통계 계산은 Supabase SQL 함수로 처리, 프론트는 결과만 받아서 렌더링.
 
-> 데이터량이 작아서 (1,220행 × 6번호) 프론트에서 직접 계산해도 충분.
-> 느려질 경우 Supabase RPC 함수로 이전.
+| 추천 유형 | RPC 함수 | 반환 |
+|-----------|----------|------|
+| `HOT` | `get_hot_numbers(range_count)` | 번호 + 출현 횟수 |
+| `COLD` | `get_cold_numbers(range_count)` | 번호 + 마지막 출현 회차 |
+| `BALANCED` | `get_balanced_numbers(range_count)` | Hot 3 + Cold 3 조합 |
+| `FREQUENCY` | `get_frequency()` | 전체 번호별 출현 빈도 |
+
+```js
+// 프론트에서 호출 예시
+const { data } = await supabase.rpc('get_hot_numbers', { range_count: 20 })
+```
+
+```sql
+-- Supabase에 등록하는 SQL 함수 예시
+CREATE FUNCTION get_hot_numbers(range_count int)
+RETURNS TABLE(num int, cnt bigint) AS $$
+  SELECT unnest(ARRAY[num1,num2,num3,num4,num5,num6]) AS num, COUNT(*) AS cnt
+  FROM (SELECT * FROM lottery_draws ORDER BY drw_no DESC LIMIT range_count) t
+  GROUP BY num ORDER BY cnt DESC
+$$ LANGUAGE sql;
+```
 
 ---
 
@@ -140,8 +154,8 @@ ax-study/
     │   ├── components/
     │   ├── lib/
     │   │   └── supabase.ts  # Supabase 클라이언트 초기화
-    │   └── utils/
-    │       └── stats.ts     # 통계 계산 로직 (hot/cold/frequency)
+    │   └── lib/
+    │       └── supabase.ts  # Supabase 클라이언트 + RPC 호출 함수
     ├── package.json
     └── vite.config.ts
 ```

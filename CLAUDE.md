@@ -44,9 +44,13 @@ lottery_draws
 // 회차 조회
 supabase.from('lottery_draws').select('*').order('drw_no', { ascending: false })
 
-// 통계는 프론트에서 직접 계산 (데이터량이 작아 충분)
-// 느려질 경우 Supabase RPC 함수로 이전
+// 통계 계산 — Supabase RPC 함수로 처리 (DB에서 집계, 결과만 반환)
+supabase.rpc('get_hot_numbers', { range_count: 20 })
+supabase.rpc('get_cold_numbers', { range_count: 20 })
+supabase.rpc('get_frequency')
 ```
+
+RPC 함수는 Supabase 대시보드 SQL Editor에서 등록. 함수 정의는 `docs/ARCHITECTURE.md` 참고.
 
 ## 개발 환경 실행
 
