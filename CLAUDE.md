@@ -33,10 +33,18 @@ lottery_draws
 
 ## 기술 스택
 
-- **프론트**: React 18 + Vite + TDS (`@toss/tds`, `@toss/use-funnel`)
+- **프론트**: React 18 + Vite + TDS (`@toss/tds`, `@toss/use-funnel`) + PWA (`vite-plugin-pwa`)
 - **DB + API**: Supabase (PostgreSQL 호스팅, REST API 자동 생성)
 - **데이터 수집**: Node.js 스크립트 (로컬 1회 실행)
 - **호스팅**: Vercel (무료, GitHub 연결 시 자동 배포)
+
+## 저장 위치 전략
+
+| 데이터 | 저장 위치 | 이유 |
+|--------|----------|------|
+| 회차 데이터 | Supabase | 영구 보존 필요 |
+| 추천 이력 | Supabase | 크롬 캐시 초기화 시 로컬 소멸 |
+| UI 설정값 (N값 등) | localStorage | 날아가도 괜찮은 설정 |
 
 ## Supabase API 패턴
 

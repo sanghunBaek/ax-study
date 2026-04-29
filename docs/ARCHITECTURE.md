@@ -29,7 +29,8 @@ React 18 + Vite
 ├── @toss/tds             # Toss Design System
 ├── @toss/use-funnel      # 퍼널 UI 패턴 (번호 추천 플로우)
 ├── @supabase/supabase-js # Supabase 클라이언트
-└── react-query           # 서버 상태 관리
+├── react-query           # 서버 상태 관리
+└── vite-plugin-pwa       # PWA 지원 (홈 화면 설치, 오프라인 캐싱)
 ```
 
 ### DB + API: Supabase
@@ -84,16 +85,34 @@ React 18 + Vite
 ## 4. 데이터 모델
 
 ```sql
+-- 회차 데이터
 lottery_draws (
-  drw_no       INTEGER PRIMARY KEY,  -- 회차 번호
-  drw_date     DATE,                 -- 추첨일
-  num1~num6    INTEGER,              -- 당첨 번호 (오름차순)
-  bonus        INTEGER,              -- 보너스 번호
-  prize_1st    BIGINT,               -- 1등 당첨금
-  total_sales  BIGINT,               -- 총 판매액
+  drw_no       INTEGER PRIMARY KEY,
+  drw_date     DATE,
+  num1~num6    INTEGER,
+  bonus        INTEGER,
+  prize_1st    BIGINT,
+  total_sales  BIGINT,
+  created_at   TIMESTAMP DEFAULT now()
+)
+
+-- 추천 이력 (날아지면 안 되므로 Supabase에 저장)
+recommendation_logs (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type         TEXT,        -- 'HOT' | 'COLD' | 'BALANCED' | 'FREQUENCY'
+  numbers      INTEGER[],   -- 추천된 번호 6개
+  range_count  INTEGER,     -- 기준 회차 수
   created_at   TIMESTAMP DEFAULT now()
 )
 ```
+
+### 저장 위치 전략
+
+| 데이터 | 저장 위치 | 이유 |
+|--------|----------|------|
+| 회차 데이터 | Supabase | 영구 보존 필요 |
+| 추천 이력 | Supabase | 크롬 캐시 초기화 시 로컬 데이터 소멸 |
+| UI 설정값 (N값 등) | localStorage | 날아가도 괜찮은 설정 |
 
 ---
 
@@ -184,9 +203,12 @@ ax-study/
 ### Phase 3 — 추천 UI (1~2일)
 - [ ] 추천 플로우 UI (`@toss/use-funnel` 활용)
 - [ ] 추천 유형 선택 → 번호 표시
+- [ ] 추천 이력 저장 (Supabase `recommendation_logs`)
 - [ ] 통계 시각화 (번호별 출현 빈도)
+- [ ] UI 설정값 localStorage 저장 (N값 등)
+- [ ] PWA 설정 (`vite-plugin-pwa`: manifest, 아이콘, 오프라인 캐싱)
 
-**검증**: 브라우저에서 전체 플로우 직접 테스트
+**검증**: 브라우저에서 전체 플로우 테스트, 모바일 홈 화면 설치 확인
 
 ### Phase 4 — 배포 + Claude Code 고도화 (ongoing)
 - [ ] Vercel 배포 (GitHub 연결)
