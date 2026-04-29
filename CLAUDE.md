@@ -6,7 +6,7 @@ Claude Code를 활용한 로또 추천 앱 학습 프로젝트.
 
 ```
 ax-study/
-├── backend/      Spring Boot 3.x (Java 21) — REST API, 데이터 수집, 통계 분석
+├── scripts/      Node.js 데이터 수집 스크립트 (초기 적재, 동기화)
 ├── frontend/     React 18 + Vite + Toss Design System
 ├── docs/         아키텍처, API 명세 문서
 └── .claude/      커스텀 슬래시 커맨드, 설정
@@ -31,36 +31,43 @@ lottery_draws
 - 전체 회차: 1회 ~ 최신 (~1,220회차), 매주 토요일 갱신
 - API 호출 간격: 200ms 이상 유지 (rate limit 주의)
 
-## 주요 API 엔드포인트
+## 기술 스택
 
-```
-GET  /api/draws              전체 회차 목록 (페이지네이션)
-GET  /api/draws/{drwNo}      특정 회차 상세
-GET  /api/stats/hot          최근 N회차 Hot 번호 (자주 나온)
-GET  /api/stats/cold         최근 N회차 Cold 번호 (안 나온)
-GET  /api/stats/frequency    전체 번호 출현 빈도
-GET  /api/recommend/stats    통계 기반 번호 추천
-POST /api/sync               최신 회차 동기화 (관리용)
+- **프론트**: React 18 + Vite + TDS (`@toss/tds`, `@toss/use-funnel`)
+- **DB + API**: Supabase (PostgreSQL 호스팅, REST API 자동 생성)
+- **데이터 수집**: Node.js 스크립트 (로컬 1회 실행)
+- **호스팅**: Vercel (무료, GitHub 연결 시 자동 배포)
+
+## Supabase API 패턴
+
+```js
+// 회차 조회
+supabase.from('lottery_draws').select('*').order('drw_no', { ascending: false })
+
+// 통계는 프론트에서 직접 계산 (데이터량이 작아 충분)
+// 느려질 경우 Supabase RPC 함수로 이전
 ```
 
 ## 개발 환경 실행
 
 ```bash
-# PostgreSQL (Docker)
-docker run -d --name lotto-db \
-  -e POSTGRES_DB=lotto -e POSTGRES_USER=lotto -e POSTGRES_PASSWORD=lotto \
-  -p 5432:5432 postgres:16
-
-# 백엔드
-cd backend && ./mvnw spring-boot:run
-
 # 프론트엔드
-cd frontend && npm run dev
+cd frontend && npm install && npm run dev
+
+# 초기 데이터 적재 (1회만)
+cd scripts && node seed.js
 ```
 
-## 환경변수 (backend/.env)
+## 환경변수
+
 ```
-DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
+# frontend/.env
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+
+# scripts/.env
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJ...
 ```
 
 ## 커스텀 슬래시 커맨드 (.claude/commands/)
@@ -69,9 +76,9 @@ DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
 
 | 커맨드 | 기능 |
 |--------|------|
-| `/seed-db` | 동행복권 API에서 전체 회차 DB 초기 적재 |
+| `/seed-db` | 동행복권 API에서 전체 회차 Supabase에 초기 적재 |
 | `/check-api` | 동행복권 API 최신 회차 확인 & DB와 동기화 상태 비교 |
-| `/db-status` | DB 적재 현황 요약 (총 회차 수, 빠진 회차 등) |
+| `/db-status` | Supabase 적재 현황 요약 (총 회차 수, 빠진 회차 등) |
 
 ## Claude Code 활용 패턴
 
@@ -82,18 +89,12 @@ DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
 ## 테스트
 
 ```bash
-# 백엔드 단위 테스트
-cd backend && ./mvnw test
-
-# 특정 테스트만
-./mvnw test -Dtest=StatsServiceTest
+cd frontend && npm run test
 ```
 
 ## 코드 컨벤션
 
-- Java: Google Java Style, 패키지 단위 도메인 분리
 - React: TypeScript strict, ESLint + Prettier
-- API: RESTful, 응답은 `{ data, meta }` 래퍼 사용
 - 커밋: `feat:`, `fix:`, `docs:`, `test:` 접두사
 
 ## 참고 문서

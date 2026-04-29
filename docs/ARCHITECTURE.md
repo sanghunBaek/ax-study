@@ -10,230 +10,221 @@
 | 기능 | 설명 |
 |------|------|
 | 전체 회차 조회 | 1회~최신 회차 당첨 번호, 금액, 날짜 |
-| 통계 기반 추천 | Hot/Cold 번호, 출현 빈도 분석 등 |
+| 통계 기반 추천 | Hot/Cold 번호, 출현 빈도 분석 |
 | 자동 데이터 갱신 | 매주 최신 회차 자동 업데이트 |
 
 ### 데이터 소스
 - **동행복권 비공식 API**: `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}`
 - JSON 응답 필드: `drwNo`, `drwNoDate`, `drwtNo1~6`, `bnusNo`, `firstWinamnt`, `totSellamnt`
 - 총 회차: ~1,220회차 (2002.12.07 시작, 매주 토요일)
-- 초기 적재: 전체 회차 일괄 수집 → 이후 주 1회 스케줄러로 갱신
+- 초기 적재: Node.js 스크립트로 전체 회차 1회 수집 → 이후 Edge Function으로 갱신
 
 ---
 
 ## 2. 기술 스택
 
-### 백엔드: Spring Boot (Java 21)
-Java에 친숙하고 생태계가 성숙해있어 적합. 통계 연산과 스케줄링을 Spring 생태계로 깔끔하게 처리 가능.
-
-```
-spring-boot 3.x
-├── spring-data-jpa       # DB 접근
-├── spring-scheduler      # 주간 데이터 동기화
-├── spring-web (WebClient)  # 동행복권 API 호출
-└── postgresql driver
-```
-
-**대안 검토**: Python(FastAPI)은 데이터 분석 라이브러리(pandas, numpy)가 풍부하지만, Java가 익숙하고 Spring Boot로도 충분히 구현 가능하므로 유지.
-
-### 프론트엔드: React + Toss Design System (TDS)
-`toss/apps-in-toss-ax`는 TDS 컴포넌트를 활용한 미니앱 개발 가이드 + MCP 툴킷.  
-토스 인앱 디자인 가이드라인을 따르되 웹 기반으로 프로토타입 제작.
-
+### 프론트엔드: React 18 + Vite + Toss Design System
 ```
 React 18 + Vite
-├── @toss/tds             # Toss Design System (토스 디자인 컴포넌트)
+├── @toss/tds             # Toss Design System
 ├── @toss/use-funnel      # 퍼널 UI 패턴 (번호 추천 플로우)
-├── react-query           # 서버 상태 관리
-└── zustand               # 클라이언트 상태 관리
+├── @supabase/supabase-js # Supabase 클라이언트
+└── react-query           # 서버 상태 관리
 ```
 
-### 데이터베이스: PostgreSQL
-회차 데이터 영구 저장, 통계 쿼리 최적화.
+### DB + API: Supabase
+- PostgreSQL 호스팅 (무료 500MB, Docker 불필요)
+- 테이블 생성 시 REST API 자동 생성
+- 복잡한 통계 집계는 SQL 함수(RPC)로 처리
+- Edge Functions: 주간 자동 갱신 스케줄링
 
-```sql
--- 핵심 테이블
-lottery_draws (drw_no, drw_date, num1~6, bonus, prize_1st, total_sales)
-recommendation_logs (id, type, input, numbers, created_at)  -- 추천 이력
-```
+### 데이터 수집: Node.js 스크립트
+- 초기 1회 로컬 실행 → 동행복권 API 순회 → Supabase에 적재
+- 이후 갱신은 Supabase Edge Function이 담당
+
+### 호스팅: Vercel (무료)
+- GitHub 연결 시 자동 배포
+- 정적 사이트 서빙 (서버 없음)
 
 ---
 
 ## 3. 시스템 아키텍처
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Frontend (React + TDS)              │
-│  홈  │  통계 추천  │  회차 조회  │  통계 시각화       │
-└──────────────────────┬──────────────────────────────┘
-                       │ REST API (JSON)
-┌──────────────────────▼──────────────────────────────┐
-│              Backend (Spring Boot)                   │
-│                                                      │
-│  ┌─────────────┐  ┌──────────────┐                  │
-│  │ Lottery API │  │  Statistics  │                  │
-│  │  Controller │  │   Service    │                  │
-│  └──────┬──────┘  └──────┬───────┘                  │
-│         │                │                          │
-│  ┌──────▼────────────────▼───────────────────────┐  │
-│  │              Lottery Draw Repository           │  │
-│  └──────────────────────┬─────────────────────────┘  │
-│                         │                            │
-│  ┌──────────────────────▼─────────────────────────┐  │
-│  │         Scheduler (주 1회 데이터 갱신)           │  │
-│  └─────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────┘
-                          │
-          ┌───────────────┘
-          ▼               ▼
-    PostgreSQL      동행복권 API
-    (회차 데이터)    (신규 회차 수집)
+┌─────────────────────────────────────┐
+│         Frontend (React + TDS)       │
+│  홈  │  통계 추천  │  회차 조회       │
+└──────────────────┬──────────────────┘
+                   │ @supabase/supabase-js
+┌──────────────────▼──────────────────┐
+│              Supabase                │
+│  ┌──────────────────────────────┐   │
+│  │  Auto REST API               │   │
+│  │  lottery_draws 조회/필터링   │   │
+│  └──────────────────────────────┘   │
+│  ┌──────────────────────────────┐   │
+│  │  SQL 함수 (RPC)              │   │
+│  │  hot/cold/frequency 집계     │   │
+│  └──────────────────────────────┘   │
+│  ┌──────────────────────────────┐   │
+│  │  Edge Function (주 1회)      │   │
+│  │  동행복권 API → DB 갱신      │   │
+│  └──────────────────────────────┘   │
+│  ┌──────────────────────────────┐   │
+│  │  PostgreSQL                  │   │
+│  │  lottery_draws               │   │
+│  └──────────────────────────────┘   │
+└─────────────────────────────────────┘
+
+배포: Vercel (프론트) + Supabase (DB/API) — 전부 무료
 ```
 
 ---
 
-## 4. 추천 알고리즘 종류
+## 4. 데이터 모델
 
-### 통계 기반 (LLM 없이 순수 계산)
+```sql
+lottery_draws (
+  drw_no       INTEGER PRIMARY KEY,  -- 회차 번호
+  drw_date     DATE,                 -- 추첨일
+  num1~num6    INTEGER,              -- 당첨 번호 (오름차순)
+  bonus        INTEGER,              -- 보너스 번호
+  prize_1st    BIGINT,               -- 1등 당첨금
+  total_sales  BIGINT,               -- 총 판매액
+  created_at   TIMESTAMP DEFAULT now()
+)
+```
+
+---
+
+## 5. 추천 알고리즘 (프론트 계산)
+
 | 추천 유형 | 로직 |
 |-----------|------|
 | `HOT` | 최근 N회차에서 가장 많이 출현한 번호 |
 | `COLD` | 가장 오랫동안 출현하지 않은 번호 |
 | `BALANCED` | Hot 3개 + Cold 3개 조합 |
 | `FREQUENCY` | 역대 전체 출현 빈도 기반 |
-| `PATTERN` | 연속번호 / 짝수·홀수 비율 분석 |
+
+> 데이터량이 작아서 (1,220행 × 6번호) 프론트에서 직접 계산해도 충분.
+> 느려질 경우 Supabase RPC 함수로 이전.
 
 ---
 
-## 5. 디렉토리 구조
+## 6. 디렉토리 구조
 
 ```
 ax-study/
-├── CLAUDE.md                    # Claude Code 프로젝트 가이드 (필수!)
+├── CLAUDE.md
 ├── docs/
-│   ├── ARCHITECTURE.md          # 이 문서
-│   └── api-spec.md              # REST API 명세
+│   ├── ARCHITECTURE.md
+│   └── api-spec.md
 │
 ├── .claude/
-│   ├── commands/                # 커스텀 슬래시 커맨드 (개발자 전용)
-│   │   ├── seed-db.md           # /seed-db: 전체 회차 초기 적재
-│   │   ├── check-api.md         # /check-api: 동행복권 API 최신 회차 확인
-│   │   └── db-status.md         # /db-status: DB 적재 현황 요약
-│   └── settings.json            # 권한 설정, 환경변수 등
+│   ├── commands/
+│   │   ├── seed-db.md       # /seed-db: 전체 회차 초기 적재
+│   │   ├── check-api.md     # /check-api: 동행복권 API 최신 회차 확인
+│   │   └── db-status.md     # /db-status: Supabase 적재 현황 요약
+│   └── settings.json
 │
-├── backend/                     # Spring Boot
-│   ├── src/main/java/com/lotto/
-│   │   ├── draw/                # 회차 도메인 (entity, repo, service)
-│   │   ├── stats/               # 통계 분석 서비스
-│   │   ├── recommend/           # 추천 엔진 (통계 기반)
-│   │   ├── scheduler/           # 주간 데이터 동기화
-│   │   └── api/                 # REST Controller
-│   ├── src/main/resources/
-│   │   └── application.yml
-│   └── pom.xml
+├── scripts/                 # Node.js 데이터 수집 스크립트
+│   ├── seed.js              # 전체 회차 초기 적재 (1회 실행)
+│   └── sync.js              # 최신 회차 수동 동기화
 │
-└── frontend/                    # React + TDS
+└── frontend/                # React + Vite + TDS
     ├── src/
     │   ├── pages/
     │   │   ├── Home.tsx
-    │   │   ├── Recommend.tsx    # 추천 메인 페이지
-    │   │   ├── History.tsx      # 회차 조회
-    │   │   └── Stats.tsx        # 통계 시각화
+    │   │   ├── Recommend.tsx
+    │   │   └── History.tsx
     │   ├── components/
-    │   └── api/                 # API 클라이언트
+    │   ├── lib/
+    │   │   └── supabase.ts  # Supabase 클라이언트 초기화
+    │   └── utils/
+    │       └── stats.ts     # 통계 계산 로직 (hot/cold/frequency)
     ├── package.json
     └── vite.config.ts
 ```
 
 ---
 
-## 6. 개발 단계 (Phase)
+## 7. 개발 단계 (Phase)
 
-### Phase 1 — 데이터 기반 구축 (2~3일)
-- [ ] Spring Boot 프로젝트 초기화 (`spring-data-jpa`, `postgresql`, `spring-web`)
-- [ ] `LotteryDraw` 엔티티 & JPA Repository 작성
-- [ ] 동행복권 API 클라이언트 구현 (WebClient)
-- [ ] 전체 회차 일괄 수집 스크립트 (1회차~현재, 약 1,220건)
-- [ ] `@Scheduled` 주간 자동 갱신 설정
-- [ ] 기본 조회 REST API (`GET /api/draws`, `GET /api/draws/{drwNo}`)
+### Phase 1 — Supabase 설정 + 데이터 수집 (1~2일)
+- [ ] Supabase 프로젝트 생성, `lottery_draws` 테이블 생성
+- [ ] Node.js seed 스크립트 작성 (동행복권 API → Supabase, 200ms 간격)
+- [ ] 전체 회차 초기 적재 실행
+- [ ] Supabase Edge Function으로 주간 자동 갱신 설정
 
-**검증**: 전체 회차 DB 적재 확인, API 응답 확인
+**검증**: Supabase 대시보드에서 1,220행 확인
 
-### Phase 2 — 통계 분석 API (2~3일)
-- [ ] `StatsService`: Hot/Cold/Frequency 계산 로직
-- [ ] 통계 API (`GET /api/stats/hot?limit=10&range=20`)
-- [ ] 통계 기반 추천 API (`GET /api/recommend/stats?type=BALANCED`)
-- [ ] 쿼리 최적화 (인덱스, 집계 쿼리)
-
-**검증**: 각 추천 유형별 결과 확인
-
-### Phase 3 — 프론트엔드 (3~4일)
+### Phase 2 — 프론트엔드 기반 (2~3일)
 - [ ] React + Vite 프로젝트 초기화
-- [ ] TDS 컴포넌트 적용 (Button, Card, BottomSheet 등)
+- [ ] TDS 컴포넌트 적용 (Button, Card 등)
+- [ ] Supabase 클라이언트 연결
+- [ ] 회차 조회 페이지 (페이지네이션)
+- [ ] 통계 계산 유틸 (`stats.ts`: hot/cold/frequency)
+
+**검증**: 회차 조회 + 기본 통계 동작 확인
+
+### Phase 3 — 추천 UI (1~2일)
 - [ ] 추천 플로우 UI (`@toss/use-funnel` 활용)
-- [ ] 회차 조회 페이지 (무한스크롤)
-- [ ] 통계 시각화 (번호별 출현 빈도 바 차트)
+- [ ] 추천 유형 선택 → 번호 표시
+- [ ] 통계 시각화 (번호별 출현 빈도)
 
 **검증**: 브라우저에서 전체 플로우 직접 테스트
 
-### Phase 4 — Claude Code 기능 고도화 (ongoing)
-- [ ] `CLAUDE.md` 정교화 (컨텍스트, 커맨드 가이드)
+### Phase 4 — 배포 + Claude Code 고도화 (ongoing)
+- [ ] Vercel 배포 (GitHub 연결)
+- [ ] `CLAUDE.md` 정교화
 - [ ] 커스텀 슬래시 커맨드 고도화 (`/seed-db`, `/check-api`, `/db-status`)
 - [ ] Subagent 활용: 복잡한 통계 분석을 별도 에이전트에 위임
-- [ ] Hook 설정: pre-commit 테스트, post-build 알림
+- [ ] Hook 설정: pre-commit lint/test 자동화
 
 ---
 
-## 7. Claude Code 학습 포인트
+## 8. Claude Code 학습 포인트
 
 | 기능 | 적용 시나리오 |
 |------|--------------|
-| `CLAUDE.md` | 프로젝트 컨텍스트, DB 스키마, API 구조 문서화 → Claude가 코드 생성 시 정확도 향상 |
-| **Skill (커스텀 커맨드)** | `/seed-db`: 초기 데이터 적재<br>`/check-api`: API 최신 회차 즉시 확인<br>`/db-status`: DB 적재 현황 파악 |
+| `CLAUDE.md` | 프로젝트 컨텍스트, DB 스키마, 구조 문서화 |
+| **Skill (커스텀 커맨드)** | `/seed-db`: 초기 데이터 적재<br>`/check-api`: API 최신 회차 확인<br>`/db-status`: Supabase 적재 현황 파악 |
 | **Subagent** | 1,200회차 전체 통계 분석처럼 무거운 작업을 별도 에이전트에 위임 |
-| **Hook** | `PreToolUse`: DB 스키마 변경 전 백업 트리거<br>`PostToolUse`: 코드 저장 후 자동 lint/test |
+| **Hook** | `PostToolUse`: 코드 저장 후 자동 lint/test |
 
 ---
 
-## 8. 환경 변수
+## 9. 환경 변수
 
 ```env
-# backend/.env
-DATABASE_URL=jdbc:postgresql://localhost:5432/lotto
-DATABASE_USERNAME=lotto
-DATABASE_PASSWORD=...
+# frontend/.env
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
 
-# 동행복권 API (별도 인증 불필요, rate limit 주의)
-LOTTERY_API_BASE_URL=https://www.dhlottery.co.kr
-LOTTERY_API_FETCH_DELAY_MS=200  # 호출 간격
+# scripts/.env (로컬 전용)
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJ...  # 쓰기 권한 필요
 ```
 
 ---
 
-## 9. 로컬 개발 환경
+## 10. 로컬 개발 환경
 
 ```bash
-# PostgreSQL (Docker)
-docker run -d \
-  --name lotto-db \
-  -e POSTGRES_DB=lotto \
-  -e POSTGRES_USER=lotto \
-  -e POSTGRES_PASSWORD=lotto \
-  -p 5432:5432 \
-  postgres:16
-
-# 백엔드 실행
-cd backend && ./mvnw spring-boot:run
-
 # 프론트엔드 실행
 cd frontend && npm install && npm run dev
+
+# 초기 데이터 적재 (1회만 실행)
+cd scripts && node seed.js
 ```
+
+> Docker, Java, PostgreSQL 설치 불필요.
+> Supabase 계정과 환경변수만 있으면 바로 시작 가능.
 
 ---
 
-## 10. 다음 단계 확장 가능성
+## 11. 다음 단계 확장 가능성
 
-- **로또 조합 최적화**: 과거 당첨 번호와 겹치지 않는 조합 자동 필터
-- **알림 기능**: 토요일 추첨 후 당첨 결과 비교 알림
-- **소셜 기능**: 추천 번호 공유
-- **모바일**: React Native + TDS로 전환 (토스 인앱 미니앱 제출 가능)
+- **Supabase RPC**: 통계 계산이 느려질 경우 SQL 함수로 이전
+- **알림 기능**: 토요일 추첨 후 당첨 결과 비교
+- **모바일**: React Native + TDS로 전환
