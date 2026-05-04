@@ -9,8 +9,9 @@
 ### 핵심 기능
 | 기능 | 설명 |
 |------|------|
-| 전체 회차 조회 | 1회~최신 회차 당첨 번호, 금액, 날짜 |
-| 통계 기반 추천 | Hot/Cold 번호, 출현 빈도 분석 |
+| 번호 뽑기 | 모드 선택(HOT/COLD/MIX/ALL) → 스크래치 카드 → 6개 선택 |
+| 통계 | 번호별 출현 빈도 차트, 역대 회차 조회 |
+| 내 기록 | 선택한 번호 이력 저장/조회 (localStorage) |
 | 자동 데이터 갱신 | 매주 최신 회차 자동 업데이트 |
 
 ### 데이터 소스
@@ -96,14 +97,8 @@ lottery_draws (
   created_at   TIMESTAMP DEFAULT now()
 )
 
--- 추천 이력 (날아지면 안 되므로 Supabase에 저장)
-recommendation_logs (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type         TEXT,        -- 'HOT' | 'COLD' | 'BALANCED' | 'FREQUENCY'
-  numbers      INTEGER[],   -- 추천된 번호 6개
-  range_count  INTEGER,     -- 기준 회차 수
-  created_at   TIMESTAMP DEFAULT now()
-)
+-- 내 기록은 localStorage에 저장 (Supabase 불필요)
+-- { mode, numbers: number[], date } 형태로 브라우저에 보존
 ```
 
 ### 저장 위치 전략
@@ -111,7 +106,7 @@ recommendation_logs (
 | 데이터 | 저장 위치 | 이유 |
 |--------|----------|------|
 | 회차 데이터 | Supabase | 영구 보존 필요 |
-| 추천 이력 | Supabase | 크롬 캐시 초기화 시 로컬 데이터 소멸 |
+| 내 기록 (번호 선택 이력) | localStorage | 개인 데이터, 날아가도 재선택 가능 |
 | UI 설정값 (N값 등) | localStorage | 날아가도 괜찮은 설정 |
 
 ---
@@ -120,12 +115,13 @@ recommendation_logs (
 
 통계 계산은 Supabase SQL 함수로 처리, 프론트는 결과만 받아서 렌더링.
 
-| 추천 유형 | RPC 함수 | 반환 |
-|-----------|----------|------|
-| `HOT` | `get_hot_numbers(range_count)` | 번호 + 출현 횟수 |
-| `COLD` | `get_cold_numbers(range_count)` | 번호 + 마지막 출현 회차 |
-| `BALANCED` | `get_balanced_numbers(range_count)` | Hot 3 + Cold 3 조합 |
-| `FREQUENCY` | `get_frequency()` | 전체 번호별 출현 빈도 |
+| 모드 | RPC 함수 | 반환 | 번호풀 |
+|------|----------|------|--------|
+| `HOT` | `get_hot_numbers(range_count)` | 번호 + 출현 횟수 | 최근 N회차 상위 20개 |
+| `COLD` | `get_cold_numbers(range_count)` | 번호 + 마지막 출현 회차 | 최근 N회차 하위 20개 |
+| `MIX` | `get_hot_numbers` + `get_cold_numbers` | 각 10개 조합 | HOT 10 + COLD 10 = 20개 |
+| `ALL` | (RPC 불필요) | 1~45 전체 | 프론트에서 직접 생성 |
+| 통계 | `get_frequency()` | 전체 번호별 출현 빈도 | 통계 화면 전용 |
 
 ```js
 // 프론트에서 호출 예시
@@ -167,9 +163,11 @@ ax-study/
 └── frontend/                # React + Vite + TDS
     ├── src/
     │   ├── pages/
-    │   │   ├── Home.tsx
-    │   │   ├── Recommend.tsx
-    │   │   └── History.tsx
+    │   │   ├── ModeSelect.tsx    # 모드 선택 (HOT/COLD/MIX/ALL)
+    │   │   ├── ScratchCard.tsx   # 스크래치 카드 인터랙션
+    │   │   ├── Result.tsx        # 완료 화면
+    │   │   ├── Stats.tsx         # 통계 (빈도 차트 + 회차 조회)
+    │   │   └── MyHistory.tsx     # 내 기록
     │   ├── components/
     │   ├── lib/
     │   │   └── supabase.ts  # Supabase 클라이언트 + RPC 호출 함수
@@ -198,12 +196,12 @@ ax-study/
 
 **검증**: 회차 조회 + 기본 통계 동작 확인
 
-### Phase 3 — 추천 UI (1~2일)
-- [ ] 추천 플로우 UI (`@toss/use-funnel` 활용)
-- [ ] 추천 유형 선택 → 번호 표시
-- [ ] 추천 이력 저장 (Supabase `recommendation_logs`)
-- [ ] 통계 시각화 (번호별 출현 빈도)
-- [ ] UI 설정값 localStorage 저장 (N값 등)
+### Phase 3 — 스크래치 카드 UI (1~2일)
+- [ ] 번호 뽑기 플로우 (`@toss/use-funnel`: 모드 선택 → 스크래치 → 완료)
+- [ ] 스크래치 카드 컴포넌트 (긁기 인터랙션, 번호 공개 애니메이션)
+- [ ] 6개 선택 완료 애니메이션 (폭죽 이펙트)
+- [ ] 내 기록 저장/조회 (localStorage)
+- [ ] 통계 시각화 (번호별 출현 빈도 바 차트)
 - [ ] PWA 설정 (`vite-plugin-pwa`: manifest, 아이콘, 오프라인 캐싱)
 
 **검증**: 브라우저에서 전체 플로우 테스트, 모바일 홈 화면 설치 확인

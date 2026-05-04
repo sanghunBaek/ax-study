@@ -43,7 +43,7 @@ lottery_draws
 | 데이터 | 저장 위치 | 이유 |
 |--------|----------|------|
 | 회차 데이터 | Supabase | 영구 보존 필요 |
-| 추천 이력 | Supabase | 크롬 캐시 초기화 시 로컬 소멸 |
+| 내 기록 (번호 선택 이력) | localStorage | 개인 데이터, 날아가도 재선택 가능 |
 | UI 설정값 (N값 등) | localStorage | 날아가도 괜찮은 설정 |
 
 ## Supabase API 패턴
@@ -52,10 +52,12 @@ lottery_draws
 // 회차 조회
 supabase.from('lottery_draws').select('*').order('drw_no', { ascending: false })
 
-// 통계 계산 — Supabase RPC 함수로 처리 (DB에서 집계, 결과만 반환)
-supabase.rpc('get_hot_numbers', { range_count: 20 })
-supabase.rpc('get_cold_numbers', { range_count: 20 })
-supabase.rpc('get_frequency')
+// 번호풀 조회 — Supabase RPC 함수로 처리 (DB에서 집계, 결과만 반환)
+supabase.rpc('get_hot_numbers', { range_count: 100 })   // HOT 모드 (상위 20개)
+supabase.rpc('get_cold_numbers', { range_count: 100 })  // COLD 모드 (하위 20개)
+// MIX 모드: HOT 10개 + COLD 10개 프론트에서 조합
+// ALL 모드: RPC 불필요, 프론트에서 1~45 배열 생성
+supabase.rpc('get_frequency')                           // 통계 화면 전용
 ```
 
 RPC 함수는 Supabase 대시보드 SQL Editor에서 등록. 함수 정의는 `docs/ARCHITECTURE.md` 참고.
