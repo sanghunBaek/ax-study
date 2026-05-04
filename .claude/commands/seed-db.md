@@ -9,5 +9,5 @@
 2. 빠진 회차가 있으면 동행복권 API 순차 호출 (200ms 간격)
 3. 전체 진행 상황과 최종 적재 결과 출력
 
-`backend/src/main/java/com/lotto/scheduler/` 의 초기 적재 메서드를 실행해줘.
+`scripts/seed.js` 를 실행해줘.
 완료 후 "총 N회차 적재 완료" 형태로 요약해줘.
