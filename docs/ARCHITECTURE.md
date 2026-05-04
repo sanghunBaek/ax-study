@@ -172,9 +172,7 @@ ax-study/
     │   │   └── History.tsx
     │   ├── components/
     │   ├── lib/
-    │   │   └── supabase.ts  # Supabase 클라이언트 초기화
-    │   └── lib/
-    │       └── supabase.ts  # Supabase 클라이언트 + RPC 호출 함수
+    │   │   └── supabase.ts  # Supabase 클라이언트 + RPC 호출 함수
     ├── package.json
     └── vite.config.ts
 ```
