@@ -1,0 +1,19 @@
+# 빌드 결과물
+frontend/dist/
+
+# 의존성
+frontend/node_modules/
+scripts/node_modules/
+
+# 환경변수 (민감 정보)
+frontend/.env
+scripts/.env
+
+# IDE 설정
+.idea/
+
+# 기타
+.DS_Store
+frontend/src/assets/hero.png
+frontend/src/assets/react.svg
+frontend/src/assets/vite.svg

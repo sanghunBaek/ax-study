@@ -8,7 +8,7 @@ Claude Code를 활용한 로또 번호 추천 앱 학습 프로젝트.
 
 ```
 ax-study/
-├── frontend/         React 18 + Vite 8 + TypeScript + PWA
+├── frontend/         React 18 + Vite 7 + TypeScript + PWA
 ├── scripts/          Node.js 데이터 수집 스크립트
 ├── docs/             아키텍처, PRD 문서
 └── .claude/          커스텀 슬래시 커맨드
@@ -20,7 +20,7 @@ ax-study/
 
 | 영역 | 기술 |
 |------|------|
-| 프론트엔드 | React 18 + Vite 8 + TypeScript |
+| 프론트엔드 | React 18 + Vite 7 + TypeScript |
 | UI | Toss Design System (`@toss/tds`) |
 | DB / API | Supabase (PostgreSQL + REST API 자동 생성) |
 | PWA | `vite-plugin-pwa` + Workbox |
@@ -86,8 +86,43 @@ node seed.js
 
 ```bash
 cd frontend
-npm install
-npm run dev
+npm install    # 패키지 설치 (아래 설명 참고)
+npm run dev    # 개발 서버 시작 → http://localhost:5173
+```
+
+### `npm install`은 언제 해야 하나?
+
+Node.js 프로젝트는 `package.json`에 선언된 외부 라이브러리(패키지)를 `node_modules/` 폴더에 다운로드해서 사용한다.
+`npm install`은 이 다운로드를 수행하는 명령어다.
+
+**`npm install`이 필요한 경우:**
+
+| 상황 | 이유 |
+|------|------|
+| 프로젝트를 처음 clone 했을 때 | `node_modules/`는 `.gitignore`에 포함되어 있어서 git에 없음 |
+| `package.json`이 변경됐을 때 | 새 패키지 추가/삭제/버전 변경 시 반영 필요 |
+| `node_modules/`를 직접 삭제했을 때 | 다시 받아야 하니까 |
+| 다른 브랜치로 전환 후 패키지가 달라졌을 때 | 브랜치마다 의존성이 다를 수 있음 |
+
+**`npm install` 안 해도 되는 경우:**
+
+| 상황 | 이유 |
+|------|------|
+| 소스코드(.tsx, .ts)만 수정했을 때 | 패키지에는 변화 없음 |
+| 이미 한번 install 하고 코드만 작업 중일 때 | `node_modules/`가 이미 있으니까 |
+| `npm run dev`로 서버 껐다 켰을 때 | 재설치 불필요, 바로 `npm run dev`만 하면 됨 |
+
+**요약: 한번 `npm install` 하면, `package.json`이 바뀌지 않는 한 다시 할 필요 없다.**
+평소에는 `npm run dev`만 실행하면 된다.
+
+### 자주 쓰는 npm 명령어 정리
+
+```bash
+npm install              # package.json 기반으로 전체 패키지 설치
+npm install <패키지명>    # 새 패키지 추가 (package.json에 자동 추가됨)
+npm run dev              # 개발 서버 실행
+npm run build            # 프로덕션 빌드
+npm run lint             # 코드 스타일 검사
 ```
 
 ---
