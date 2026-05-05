@@ -120,6 +120,16 @@ SUPABASE_SERVICE_KEY=eyJ...
 cd frontend && npm run test
 ```
 
+## 문서 동기화 규칙
+
+아키텍처 변경, 프로젝트 구조 변경, 기술 스택 변경 등 큰 수정사항이 발생하면 반드시 아래 문서들을 확인하고 업데이트한다:
+
+- `CLAUDE.md` — 프로젝트 구조, 기술 스택, API 패턴 등
+- `README.md` — 프로젝트 소개, 실행 방법
+- `docs/` 하위 md 파일 (`ARCHITECTURE.md` 등) — 아키텍처 상세, API 명세
+
+변경 범위에 해당하는 문서가 있으면 해당 내용을 최신 상태로 반영한다.
+
 ## 코드 컨벤션
 
 - React: TypeScript strict, ESLint + Prettier
