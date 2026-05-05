@@ -7,50 +7,10 @@ import RecordsScreen from './screens/RecordsScreen';
 import { saveRecord } from './data/lotto';
 
 const BLUE = '#0066FF';
-const INK = '#171719';
-const SUB = '#6A6B6F';
 
 type Tab = 'draw' | 'stats' | 'records';
 type DrawStep = 'home' | 'scratch' | 'done';
 
-function PhoneFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      width: 390, height: 760, borderRadius: 48,
-      background: '#000', padding: 8, boxSizing: 'border-box',
-      boxShadow: '0 30px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)',
-      position: 'relative',
-    }}>
-      <div style={{
-        width: '100%', height: '100%', borderRadius: 40,
-        overflow: 'hidden', position: 'relative', background: '#fff',
-      }}>
-        {/* Status bar */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 44,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 28px', zIndex: 200,
-          fontFamily: '-apple-system, system-ui',
-          fontSize: 15, fontWeight: 600, color: INK,
-        }}>
-          <span>9:41</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ display: 'inline-block', width: 16, height: 10, border: `1px solid ${INK}`, borderRadius: 2, position: 'relative' }}>
-              <span style={{ position: 'absolute', inset: 1, background: INK, borderRadius: 1 }} />
-            </span>
-          </span>
-        </div>
-        {children}
-        {/* Home indicator */}
-        <div style={{
-          position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)',
-          width: 134, height: 5, borderRadius: 999,
-          background: 'rgba(0,0,0,0.3)', zIndex: 250, pointerEvents: 'none',
-        }} />
-      </div>
-    </div>
-  );
-}
 
 function TabIconDraw({ active }: { active: boolean }) {
   const c = active ? BLUE : '#A8A8AB';
@@ -205,22 +165,14 @@ export default function App() {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(180deg, #EAEEF3 0%, #F4F4F5 200px)',
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-      padding: '40px 16px 80px',
+      width: '100%', minHeight: '100svh',
+      background: '#fff',
+      position: 'relative',
       fontFamily: '"Pretendard JP", system-ui',
     }}>
-      <div>
-        <PhoneFrame>
-          {body}
-          {showTab && <TabBar tab={tab} onTab={changeTab} />}
-          <Toast msg={toast} />
-        </PhoneFrame>
-        <div style={{ marginTop: 20, textAlign: 'center', color: SUB, fontSize: 12.5 }}>
-          럭키 로또 · 인터랙티브 프로토타입 (A안 · 클래식 실버 + Wanted Blue)
-        </div>
-      </div>
+      {body}
+      {showTab && <TabBar tab={tab} onTab={changeTab} />}
+      <Toast msg={toast} />
     </div>
   );
 }

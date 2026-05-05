@@ -15,7 +15,7 @@ export function Screen({ children, bg = '#FFFFFF', pad = true }: ScreenProps) {
         position: 'absolute',
         inset: 0,
         background: bg,
-        padding: pad ? '52px 0 86px' : '0',
+        padding: pad ? '20px 0 86px' : '0',
         overflow: 'auto',
         fontFamily: '"Pretendard JP", system-ui',
         color: INK,
