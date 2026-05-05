@@ -15,10 +15,18 @@
 | 자동 데이터 갱신 | 매주 최신 회차 자동 업데이트 |
 
 ### 데이터 소스
-- **동행복권 비공식 API**: `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}`
-- JSON 응답 필드: `drwNo`, `drwNoDate`, `drwtNo1~6`, `bnusNo`, `firstWinamnt`, `totSellamnt`
-- 총 회차: ~1,220회차 (2002.12.07 시작, 매주 토요일)
-- 초기 적재: Node.js 스크립트로 전체 회차 1회 수집 → 이후 Edge Function으로 갱신
+- **[smok95/lotto](https://github.com/smok95/lotto)**: GitHub Pages에서 제공하는 로또 전체 회차 JSON 데이터셋
+  - 전체 회차: `https://smok95.github.io/lotto/results/all.json`
+  - 최신 회차: `https://smok95.github.io/lotto/results/latest.json`
+  - 회차별: `https://smok95.github.io/lotto/results/{회차}.json`
+- JSON 응답 필드: `draw_no`, `numbers[]`, `bonus_no`, `date`, `divisions[]`, `total_sales_amount`
+- 총 회차: ~1,222회차 (2002.12.07 시작, 매주 토요일)
+- 초기 적재: `scripts/seed-from-github.js`로 전체 회차 1회 수집 → 이후 Edge Function으로 갱신
+
+> **왜 동행복권 API를 안 쓰는가?**
+> 원래 동행복권 비공식 API(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}`)를
+> 사용하려 했으나, 서버 측에서 외부 요청을 차단하여 curl/Node.js fetch 모두 리다이렉트됨.
+> Playwright 브라우저 자동화도 시도했으나 불안정. 결국 GitHub에 정리된 데이터셋으로 전환.
 
 ---
 
@@ -41,7 +49,7 @@ React 18 + Vite
 - Edge Functions: 주간 자동 갱신 스케줄링
 
 ### 데이터 수집: Node.js 스크립트
-- 초기 1회 로컬 실행 → 동행복권 API 순회 → Supabase에 적재
+- 초기 1회 로컬 실행 → smok95/lotto GitHub 데이터셋 다운로드 → Supabase에 적재
 - 이후 갱신은 Supabase Edge Function이 담당
 
 ### 호스팅: Vercel (무료)
@@ -70,7 +78,7 @@ React 18 + Vite
 │  └──────────────────────────────┘   │
 │  ┌──────────────────────────────┐   │
 │  │  Edge Function (주 1회)      │   │
-│  │  동행복권 API → DB 갱신      │   │
+│  │  GitHub 데이터셋 → DB 갱신   │   │
 │  └──────────────────────────────┘   │
 │  ┌──────────────────────────────┐   │
 │  │  PostgreSQL                  │   │
@@ -157,7 +165,8 @@ ax-study/
 │   └── settings.json
 │
 ├── scripts/                 # Node.js 데이터 수집 스크립트
-│   ├── seed.js              # 전체 회차 초기 적재 (1회 실행)
+│   ├── seed-from-github.js   # 전체 회차 초기 적재 (GitHub 데이터셋, 1회 실행)
+│   ├── seed.js              # (레거시) Playwright 기반 적재 — 동행복권 API 차단으로 미사용
 │   └── sync.js              # 최신 회차 수동 동기화
 │
 └── frontend/                # React + Vite + TDS
@@ -181,8 +190,8 @@ ax-study/
 
 ### Phase 1 — Supabase 설정 + 데이터 수집 (1~2일)
 - [ ] Supabase 프로젝트 생성, `lottery_draws` 테이블 생성
-- [ ] Node.js seed 스크립트 작성 (동행복권 API → Supabase, 200ms 간격)
-- [ ] 전체 회차 초기 적재 실행
+- [x] Node.js seed 스크립트 작성 (GitHub 데이터셋 → Supabase)
+- [x] 전체 회차 초기 적재 실행 (1,222회차 완료)
 - [ ] Supabase Edge Function으로 주간 자동 갱신 설정
 
 **검증**: Supabase 대시보드에서 1,220행 확인
@@ -247,7 +256,7 @@ SUPABASE_SERVICE_KEY=eyJ...  # 쓰기 권한 필요
 cd frontend && npm install && npm run dev
 
 # 초기 데이터 적재 (1회만 실행)
-cd scripts && node seed.js
+cd scripts && node seed-from-github.js
 ```
 
 > Docker, Java, PostgreSQL 설치 불필요.

@@ -27,15 +27,20 @@ lottery_draws
 ```
 
 ### 데이터 소스
-- 동행복권 API: `GET https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}`
-- 전체 회차: 1회 ~ 최신 (~1,220회차), 매주 토요일 갱신
-- API 호출 간격: 200ms 이상 유지 (rate limit 주의)
+- **초기 적재**: [smok95/lotto](https://github.com/smok95/lotto) GitHub 저장소의 `all.json` 활용
+  - `https://smok95.github.io/lotto/results/all.json` (전체 회차 JSON)
+  - `https://smok95.github.io/lotto/results/latest.json` (최신 회차)
+- 전체 회차: 1회 ~ 최신 (~1,222회차), 매주 토요일 갱신
+
+> **참고**: 원래 동행복권 API(`GET https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}`)를
+> 사용하려 했으나, 외부 요청을 차단(리다이렉트)하여 curl/Node.js에서 호출 불가.
+> Playwright 브라우저 자동화도 시도했으나 불안정하여, GitHub에 정리된 데이터셋으로 전환.
 
 ## 기술 스택
 
 - **프론트**: React 18 + Vite + TDS (`@toss/tds`, `@toss/use-funnel`) + PWA (`vite-plugin-pwa`)
 - **DB + API**: Supabase (PostgreSQL 호스팅, REST API 자동 생성)
-- **데이터 수집**: Node.js 스크립트 (로컬 1회 실행)
+- **데이터 수집**: Node.js 스크립트 (smok95/lotto GitHub 데이터셋 → Supabase 적재)
 - **호스팅**: Vercel (무료, GitHub 연결 시 자동 배포)
 
 ## 저장 위치 전략
@@ -69,7 +74,7 @@ RPC 함수는 Supabase 대시보드 SQL Editor에서 등록. 함수 정의는 `d
 cd frontend && npm install && npm run dev
 
 # 초기 데이터 적재 (1회만)
-cd scripts && node seed.js
+cd scripts && node seed-from-github.js
 ```
 
 ## 환경변수
@@ -90,9 +95,18 @@ SUPABASE_SERVICE_KEY=eyJ...
 
 | 커맨드 | 기능 |
 |--------|------|
-| `/seed-db` | 동행복권 API에서 전체 회차 Supabase에 초기 적재 |
-| `/check-api` | 동행복권 API 최신 회차 확인 & DB와 동기화 상태 비교 |
+| `/seed-db` | GitHub 데이터셋(smok95/lotto)에서 전체 회차 Supabase에 초기 적재 |
+| `/check-api` | GitHub 데이터셋 최신 회차 확인 & DB와 동기화 상태 비교 |
 | `/db-status` | Supabase 적재 현황 요약 (총 회차 수, 빠진 회차 등) |
+
+## 기능 개발 워크플로우
+
+### spec-kit 활용
+기능 개발은 **spec-kit**을 활용하여 진행한다.
+
+- **설치**: `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git`
+- **역할**: 기능 개발 전 스펙(명세)을 먼저 작성하고, 해당 스펙을 기반으로 구현 진행
+- **순서**: 스펙 작성 → 리뷰 → 구현 → 테스트
 
 ## Claude Code 활용 패턴
 
@@ -114,4 +128,5 @@ cd frontend && npm run test
 ## 참고 문서
 - [아키텍처 전체 플랜](docs/ARCHITECTURE.md)
 - [toss/apps-in-toss-ax](https://github.com/toss/apps-in-toss-ax) — TDS 디자인 가이드
-- [동행복권 API (비공식)](https://github.com/roeniss/dhlottery-api)
+- [smok95/lotto](https://github.com/smok95/lotto) — 로또 전체 회차 JSON 데이터셋 (실제 사용 중)
+- [동행복권 API (비공식)](https://github.com/roeniss/dhlottery-api) — 참고용 (현재 외부 호출 차단됨)
