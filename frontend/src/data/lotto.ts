@@ -12,16 +12,6 @@ const FREQ_100 = (() => {
   return out;
 })();
 
-export const FREQ_50 = FREQ_100.map((d) => ({
-  n: d.n,
-  count: Math.round(d.count * 0.55 + Math.sin(d.n * 2.1) * 1.4),
-}));
-export { FREQ_100 };
-export const FREQ_ALL = FREQ_100.map((d) => ({
-  n: d.n,
-  count: Math.round(d.count * 12.4 + Math.cos(d.n * 0.91) * 5),
-}));
-
 function topN(freq: { n: number; count: number }[], k: number) {
   return [...freq].sort((a, b) => b.count - a.count).slice(0, k).map((d) => d.n);
 }
@@ -61,17 +51,6 @@ export const MODES: Record<string, Mode> = {
 export const LATEST_DRAW = {
   round: 1118, date: '2026-05-04', nums: [3, 12, 23, 27, 38, 41], bonus: 7, prize: 2845130000,
 };
-
-export const PAST_DRAWS = [
-  { round: 1118, date: '2026-05-04', nums: [3, 12, 23, 27, 38, 41], bonus: 7,  prize: 2845130000 },
-  { round: 1117, date: '2026-04-27', nums: [8, 15, 19, 22, 35, 44], bonus: 31, prize: 2701520000 },
-  { round: 1116, date: '2026-04-20', nums: [5, 11, 18, 26, 33, 40], bonus: 14, prize: 2602990000 },
-  { round: 1115, date: '2026-04-13', nums: [2, 17, 21, 28, 36, 43], bonus: 9,  prize: 2911840000 },
-  { round: 1114, date: '2026-04-06', nums: [1, 13, 24, 29, 37, 42], bonus: 18, prize: 2580020000 },
-  { round: 1113, date: '2026-03-30', nums: [6, 14, 20, 25, 34, 45], bonus: 22, prize: 2730510000 },
-  { round: 1112, date: '2026-03-23', nums: [4, 10, 16, 30, 39, 41], bonus: 11, prize: 2876440000 },
-  { round: 1111, date: '2026-03-16', nums: [7, 12, 19, 27, 32, 38], bonus: 5,  prize: 2655910000 },
-];
 
 export function ballColor(n: number): { bg: string; fg: string } {
   if (n <= 10) return { bg: '#FBC400', fg: '#1F1F1F' };

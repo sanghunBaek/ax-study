@@ -38,7 +38,7 @@ lottery_draws
 
 ## 기술 스택
 
-- **프론트**: React 18 + Vite + TDS (`@toss/tds`, `@toss/use-funnel`) + PWA (`vite-plugin-pwa`)
+- **프론트**: React 19 + Vite + TDS (`@toss/tds`, `@toss/use-funnel`) + PWA (`vite-plugin-pwa`)
 - **DB + API**: Supabase (PostgreSQL 호스팅, REST API 자동 생성)
 - **데이터 수집**: Node.js 스크립트 (smok95/lotto GitHub 데이터셋 → Supabase 적재)
 - **호스팅**: Vercel (무료, GitHub 연결 시 자동 배포)
@@ -140,3 +140,9 @@ cd frontend && npm run test
 - [toss/apps-in-toss-ax](https://github.com/toss/apps-in-toss-ax) — TDS 디자인 가이드
 - [smok95/lotto](https://github.com/smok95/lotto) — 로또 전체 회차 JSON 데이터셋 (실제 사용 중)
 - [동행복권 API (비공식)](https://github.com/roeniss/dhlottery-api) — 참고용 (현재 외부 호출 차단됨)
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at `specs/001-stats-live-data/plan.md`
+<!-- SPECKIT END -->
