@@ -3,6 +3,7 @@ import { Screen } from '../components/Screen';
 import NumberBall from '../components/NumberBall';
 import { MODES, ballColor } from '../data/lotto';
 
+
 const BLUE = '#0066FF';
 const INK = '#171719';
 const SUB = '#6A6B6F';
@@ -186,15 +187,16 @@ function ScratchTile({ n, size, revealed, selected, disabled, onReveal, onToggle
 
 interface Props {
   modeId: string;
+  pool: number[];
   onCancel: () => void;
   onComplete: (modeId: string, nums: number[]) => void;
 }
 
-export default function ScratchScreen({ modeId, onCancel, onComplete }: Props) {
+export default function ScratchScreen({ modeId, pool: poolProp, onCancel, onComplete }: Props) {
   const mode = MODES[modeId];
 
   const [pool] = useState<number[]>(() => {
-    const arr = [...mode.pool];
+    const arr = [...poolProp];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];

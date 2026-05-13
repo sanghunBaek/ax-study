@@ -1,6 +1,7 @@
 import { Screen, ScreenTitle } from '../components/Screen';
 import NumberBall from '../components/NumberBall';
-import { MODES, LATEST_DRAW } from '../data/lotto';
+import { MODES } from '../data/lotto';
+import useLatestDraw from '../hooks/useLatestDraw';
 
 const BLUE = '#0066FF';
 const INK = '#171719';
@@ -47,6 +48,8 @@ function ModeIcon({ mode, accent }: { mode: string; accent: string }) {
 }
 
 export default function HomeScreen({ onPickMode }: Props) {
+  const { data: latestDraw, loading, error, retry } = useLatestDraw();
+
   return (
     <Screen bg="#FAFAFB">
       <div style={{ padding: '12px 22px 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -76,14 +79,39 @@ export default function HomeScreen({ onPickMode }: Props) {
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: SUB, letterSpacing: '0.04em', marginBottom: 4 }}>
-              최근 당첨 · {LATEST_DRAW.round}회
-            </div>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-              {LATEST_DRAW.nums.map((n) => <NumberBall key={n} n={n} size={26} />)}
-              <span style={{ color: '#C2C4C8', fontWeight: 800, margin: '0 2px' }}>+</span>
-              <NumberBall n={LATEST_DRAW.bonus} size={26} />
-            </div>
+            {loading && (
+              <div style={{ fontSize: 12, color: SUB, padding: '8px 0' }}>
+                불러오는 중...
+              </div>
+            )}
+            {!loading && error && !latestDraw && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#FF4242' }}>불러올 수 없습니다</div>
+                <button
+                  onClick={retry}
+                  style={{
+                    all: 'unset', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, color: BLUE,
+                    padding: '4px 10px', borderRadius: 8,
+                    background: '#EAF2FE',
+                  }}
+                >
+                  재시도
+                </button>
+              </div>
+            )}
+            {!loading && latestDraw && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, color: SUB, letterSpacing: '0.04em', marginBottom: 4 }}>
+                  최근 당첨 · {latestDraw.round}회
+                </div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {latestDraw.nums.map((n) => <NumberBall key={n} n={n} size={26} />)}
+                  <span style={{ color: '#C2C4C8', fontWeight: 800, margin: '0 2px' }}>+</span>
+                  <NumberBall n={latestDraw.bonus} size={26} />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
