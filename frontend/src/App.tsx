@@ -4,7 +4,8 @@ import ScratchScreen from './screens/ScratchScreen';
 import DoneScreen from './screens/DoneScreen';
 import StatsScreen from './screens/StatsScreen';
 import RecordsScreen from './screens/RecordsScreen';
-import { saveRecord } from './data/lotto';
+import { saveRecord, MODES } from './data/lotto';
+import useNumberPool from './hooks/useNumberPool';
 
 const BLUE = '#0066FF';
 
@@ -96,6 +97,9 @@ function Toast({ msg }: { msg: string }) {
   );
 }
 
+const INK = '#171719';
+const SUB = '#6A6B6F';
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('draw');
   const [drawStep, setDrawStep] = useState<DrawStep>('home');
@@ -104,6 +108,10 @@ export default function App() {
   const [justSaved, setJustSaved] = useState(false);
   const [toast, setToast] = useState('');
   const [recordsKey, setRecordsKey] = useState(0);
+
+  const { pool, loading: poolLoading, error: poolError, retry: poolRetry } = useNumberPool(
+    drawStep === 'scratch' || drawStep === 'done' ? mode : null
+  );
 
   function showToast(msg: string) {
     setToast(msg);
@@ -140,21 +148,84 @@ export default function App() {
     setDrawStep('home');
   }
 
+  function goHome() {
+    setDrawStep('home');
+    setMode(null);
+    setPicked(null);
+  }
+
   function changeTab(next: Tab) {
     if (next === tab) return;
     if (tab === 'draw' && drawStep !== 'home') {
-      setDrawStep('home');
-      setMode(null);
-      setPicked(null);
+      goHome();
     }
     setTab(next);
   }
 
   let body: React.ReactNode;
   if (tab === 'draw') {
-    if (drawStep === 'home') body = <HomeScreen onPickMode={pickMode} />;
-    else if (drawStep === 'scratch' && mode) body = <ScratchScreen modeId={mode} onCancel={() => setDrawStep('home')} onComplete={completeScratch} />;
-    else if (drawStep === 'done' && mode && picked) body = <DoneScreen modeId={mode} nums={picked} onSave={save} onAgain={again} onClose={closeDone} justSaved={justSaved} />;
+    if (drawStep === 'home') {
+      body = <HomeScreen onPickMode={pickMode} />;
+    } else if (drawStep === 'scratch' && mode) {
+      if (poolLoading) {
+        const modeInfo = MODES[mode];
+        body = (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            height: '100svh', gap: 12, padding: '0 24px', textAlign: 'center',
+          }}>
+            <div style={{
+              fontFamily: '"Wanted Sans Variable", system-ui', fontWeight: 800,
+              fontSize: 18, color: INK, letterSpacing: '-0.02em',
+            }}>
+              {modeInfo?.id} · {modeInfo?.label}
+            </div>
+            <div style={{ fontSize: 14, color: SUB }}>
+              번호풀을 준비하는 중...
+            </div>
+          </div>
+        );
+      } else if (poolError && !pool) {
+        body = (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            height: '100svh', gap: 16, padding: '0 24px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 14, color: '#FF4242' }}>
+              {poolError}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={poolRetry}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  padding: '10px 20px', borderRadius: 12,
+                  background: BLUE, color: '#fff',
+                  fontFamily: '"Wanted Sans Variable", system-ui', fontWeight: 700, fontSize: 14,
+                }}
+              >
+                다시 시도
+              </button>
+              <button
+                onClick={goHome}
+                style={{
+                  all: 'unset', cursor: 'pointer',
+                  padding: '10px 20px', borderRadius: 12,
+                  background: '#F2F3F5', color: INK,
+                  fontFamily: '"Wanted Sans Variable", system-ui', fontWeight: 700, fontSize: 14,
+                }}
+              >
+                홈으로
+              </button>
+            </div>
+          </div>
+        );
+      } else if (pool) {
+        body = <ScratchScreen modeId={mode} pool={pool} onCancel={goHome} onComplete={completeScratch} />;
+      }
+    } else if (drawStep === 'done' && mode && picked) {
+      body = <DoneScreen modeId={mode} nums={picked} onSave={save} onAgain={again} onClose={closeDone} justSaved={justSaved} />;
+    }
   } else if (tab === 'stats') {
     body = <StatsScreen />;
   } else if (tab === 'records') {
