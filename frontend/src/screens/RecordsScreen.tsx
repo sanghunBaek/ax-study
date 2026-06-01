@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Screen, ScreenTitle } from '../components/Screen';
 import NumberBall from '../components/NumberBall';
+import WinningBadge from '../components/WinningBadge';
 import { MODES, loadRecords, deleteRecord, fmtDate } from '../data/lotto';
 import type { LottoRecord } from '../data/lotto';
+import useWinningResults from '../hooks/useWinningResults';
 
 const BLUE = '#0066FF';
 const INK = '#171719';
@@ -15,6 +17,7 @@ interface Props {
 
 export default function RecordsScreen({ refreshKey }: Props) {
   const [records, setRecords] = useState<LottoRecord[]>(loadRecords);
+  const { results, loading } = useWinningResults(records);
 
   useEffect(() => {
     setRecords(loadRecords());
@@ -58,28 +61,41 @@ export default function RecordsScreen({ refreshKey }: Props) {
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {records.map((r) => {
             const m = MODES[r.mode];
+            const wr = results.get(r.id);
+            const drwNo = wr?.drwNo;
+            const rank = wr?.rank ?? 'pending';
+
             return (
               <div key={r.id} style={{
                 background: '#fff', border: `1px solid ${HAIR}`, borderRadius: 14,
                 padding: '12px 14px',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     <div style={{
                       fontFamily: '"Wanted Sans Variable", system-ui', fontWeight: 800, fontSize: 13,
                       color: m ? m.accent : INK, letterSpacing: '0.06em',
                     }}>{r.mode}</div>
-                    <div style={{ fontSize: 11, color: SUB }}>· {fmtDate(r.ts)}</div>
+                    <div style={{ fontSize: 11, color: SUB }}>
+                      {drwNo ? `${drwNo}회 · ` : ''}{fmtDate(r.ts)}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => remove(r.id)}
-                    style={{
-                      all: 'unset', cursor: 'pointer',
-                      fontSize: 11, color: '#C2C4C8', fontWeight: 600, padding: 4,
-                    }}
-                  >
-                    삭제
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {loading ? (
+                      <span style={{ fontSize: 11, color: '#C2C4C8' }}>...</span>
+                    ) : (
+                      <WinningBadge rank={rank} />
+                    )}
+                    <button
+                      onClick={() => remove(r.id)}
+                      style={{
+                        all: 'unset', cursor: 'pointer',
+                        fontSize: 11, color: '#C2C4C8', fontWeight: 600, padding: 4,
+                      }}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                   {r.nums.map((n) => <NumberBall key={n} n={n} size={28} />)}
