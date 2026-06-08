@@ -1,0 +1,31 @@
+name: Sync Lotto Data
+
+on:
+  schedule:
+    - cron: '0 21 * * 6'  # 매주 토요일 21:00 UTC (= 일요일 06:00 KST)
+  workflow_dispatch:       # 수동 실행 가능
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node seed-from-github.js
